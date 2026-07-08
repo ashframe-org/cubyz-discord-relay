@@ -2,6 +2,12 @@ export type EventType = "join" | "leave" | "death" | "chat";
 
 export type AllowedMentionType = "roles" | "users" | "everyone";
 
+export interface ChatPattern {
+  pattern: string;
+}
+
+export type ChatPatterns = Record<EventType, ChatPattern>;
+
 export type LogLevel = "error" | "debug" | "info" | "warn" | "silent";
 
 export interface CubyzConnectionConfig {
@@ -51,6 +57,7 @@ export interface Config {
   excludeBotFromCount: boolean;
   excludedUsernames: string[];
   integration: IntegrationConfig;
+  chatPatterns: ChatPatterns;
 }
 
 export interface ChatMessage {

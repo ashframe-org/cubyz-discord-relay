@@ -20,6 +20,20 @@
   "startupMessageDelay": 0,
   "excludeBotFromCount": true,
   "excludedUsernames": [],
+  "chatPatterns": {
+    "chat": {
+      "pattern": "^\\[(?<username>.+?)\\]\\s*(?<message>[\\s\\S]*)$"
+    },
+    "join": {
+      "pattern": "^(?<username>.+?) joined$"
+    },
+    "leave": {
+      "pattern": "^(?<username>.+?) left$"
+    },
+    "death": {
+      "pattern": "^(?<username>.+?) died(?<message>.*)$"
+    }
+  },
   "connection": {
     "reconnect": true,
     "maxRetries": 0,

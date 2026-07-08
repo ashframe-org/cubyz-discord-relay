@@ -16,14 +16,6 @@
 - `src/botConnection.ts` is the Cubyz boundary. It wraps `cubyz-node-client`, normalizes chat/player/gamemode events, filters the relay bot and `excludedUsernames` from player counts, and handles reconnects.
 - `src/integrations/index.ts` fans normalized events out to integrations. Current integrations are `DiscordIntegration` and `CubyzListSiteIntegration`.
 
-## Repo Quirks
-
-- `dist/` is generated output and ignored; edit `src/` instead.
-- `config.json` is a local runtime file and ignored. Do not commit real credentials.
-- `connection.maxRetries: 0` means infinite retries.
-- `startupMessageDelay` is applied before every startup message, including the first one.
-- Discord behavior depends on config flags in `src/types.ts` and `src/config.ts`: `discord.enabled`, `enableReplies`, `enableReactions`, and `allowedMentions` all materially change runtime behavior.
-
 ## Testing Scope
 
 - The automated tests cover only the pure parsing/formatting logic in `test/chatParser.test.ts` and `test/messageFormatter.test.ts`.

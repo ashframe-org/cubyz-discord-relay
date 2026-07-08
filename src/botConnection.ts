@@ -9,11 +9,12 @@ import type {
   GenericUpdate,
   PlayersEvent,
 } from "cubyz-node-client/dist/connection.js";
-import { parseChatMessage } from "./chatParser.js";
+import { createChatParser } from "./chatParser.js";
 import { createLogger, type Logger } from "./logger.js";
 import { cleanUsername } from "./messageFormatter.js";
 import type {
   ChatMessage,
+  ChatPatterns,
   ConnectionRetryConfig,
   CubyzConnectionConfig,
   LogLevel,
@@ -58,6 +59,7 @@ export class BotConnectionManager extends EventEmitter {
   private requestedStop = false;
   private readonly botNormalizedName: string;
   private readonly excludedNormalizedNames: Set<string>;
+  private readonly parseMessage: (message: string) => ChatMessage | null;
   private readonly log: Logger;
 
   constructor(
@@ -66,6 +68,7 @@ export class BotConnectionManager extends EventEmitter {
     private readonly logLevel: LogLevel,
     private readonly excludeBotFromCount: boolean,
     excludedUsernames: readonly string[],
+    chatPatterns: ChatPatterns,
   ) {
     super();
     this.botNormalizedName = toNormalized(
@@ -74,6 +77,7 @@ export class BotConnectionManager extends EventEmitter {
     this.excludedNormalizedNames = new Set(
       excludedUsernames.map((name) => toNormalized(cleanUsername(name))),
     );
+    this.parseMessage = createChatParser(chatPatterns);
     this.log = createLogger(logLevel);
   }
 
@@ -198,9 +202,11 @@ export class BotConnectionManager extends EventEmitter {
       return;
     }
 
-    const chatMessage = parseChatMessage(trimmed);
+    const chatMessage = this.parseMessage(trimmed);
     if (chatMessage) {
       this.emitChatMessage(chatMessage);
+    } else {
+      this.log("warn", "Unrecognized chat message:", trimmed);
     }
   };
 

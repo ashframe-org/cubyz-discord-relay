@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createLogger } from "./logger.js";
 import type {
   AllowedMentionType,
+  ChatPatterns,
   Config,
   ConnectionRetryConfig,
   CubyzConnectionConfig,
@@ -49,6 +50,12 @@ const DEFAULT_CUBYZLIST_SITE: CubyzListSiteConfig = {
   iconUrl: undefined,
   discordServer: undefined,
   customClientDownloadUrl: undefined,
+};
+export const DEFAULT_CHAT_PATTERNS: ChatPatterns = {
+  chat: { pattern: "^\\[(?<username>.+?)\\]\\s*(?<message>[\\s\\S]*)$" },
+  join: { pattern: "^(?<username>.+?) joined$" },
+  leave: { pattern: "^(?<username>.+?) left$" },
+  death: { pattern: "^(?<username>.+?) died(?<message>.*)$" },
 };
 const CONFIG_TEMPLATE_PATH = fileURLToPath(
   new URL("../config.example.json", import.meta.url),
@@ -223,6 +230,33 @@ function applyDefaults(partial: Partial<Config>): Config {
     cubyzlistSite,
   };
 
+  const chatPatterns: ChatPatterns = {
+    chat: {
+      pattern: coerceString(
+        partial.chatPatterns?.chat?.pattern,
+        DEFAULT_CHAT_PATTERNS.chat.pattern,
+      ),
+    },
+    join: {
+      pattern: coerceString(
+        partial.chatPatterns?.join?.pattern,
+        DEFAULT_CHAT_PATTERNS.join.pattern,
+      ),
+    },
+    leave: {
+      pattern: coerceString(
+        partial.chatPatterns?.leave?.pattern,
+        DEFAULT_CHAT_PATTERNS.leave.pattern,
+      ),
+    },
+    death: {
+      pattern: coerceString(
+        partial.chatPatterns?.death?.pattern,
+        DEFAULT_CHAT_PATTERNS.death.pattern,
+      ),
+    },
+  };
+
   const logLevel = (() => {
     if (typeof partial.logLevel !== "string") {
       return DEFAULT_LOG_LEVEL;
@@ -269,6 +303,7 @@ function applyDefaults(partial: Partial<Config>): Config {
         : DEFAULT_EXCLUDE_BOT_FROM_COUNT,
     excludedUsernames,
     integration,
+    chatPatterns,
   };
 }
 
@@ -567,6 +602,34 @@ export function validateConfig(config: Config): void {
     ) {
       throw new Error(
         'Configuration error: "integration.cubyzlistSite.customClientDownloadUrl" must be a non-empty string or undefined.',
+      );
+    }
+  }
+
+  if (!config.chatPatterns || typeof config.chatPatterns !== "object") {
+    throw new Error('Configuration error: "chatPatterns" section is required.');
+  }
+
+  const eventTypes: EventType[] = ["chat", "join", "leave", "death"];
+  for (const type of eventTypes) {
+    const entry = (config.chatPatterns as Record<string, unknown>)[type];
+    if (entry == null || typeof entry !== "object") {
+      throw new Error(
+        `Configuration error: "chatPatterns.${type}" must be an object with a "pattern" string.`,
+      );
+    }
+    const patternValue = (entry as Record<string, unknown>).pattern;
+    if (typeof patternValue !== "string" || patternValue.trim().length === 0) {
+      throw new Error(
+        `Configuration error: "chatPatterns.${type}.pattern" must be a non-empty string.`,
+      );
+    }
+    try {
+      new RegExp(patternValue);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Configuration error: "chatPatterns.${type}.pattern" is not a valid regular expression: ${reason}`,
       );
     }
   }

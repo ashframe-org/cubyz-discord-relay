@@ -126,6 +126,7 @@ async function main(): Promise<void> {
       config.logLevel,
       config.excludeBotFromCount,
       config.excludedUsernames,
+      config.chatPatterns,
     );
 
     integrationManager = new IntegrationManager(config, { bot });
