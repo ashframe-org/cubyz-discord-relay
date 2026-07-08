@@ -79,6 +79,7 @@ npm install
    - `connection.reconnect`: enable/disable automatic reconnect attempts
    - `connection.maxRetries`: maximum reconnect attempts (`0` = infinite)
    - `connection.retryDelayMs`: initial delay before retrying (milliseconds)
+   - `chatPatterns`: user-configurable regex patterns for parsing Cubyz chat messages (see [Chat Patterns](#chat-patterns))
 
 > First run convenience: if `config.json` is missing, the application writes a fresh template in your working directory and exits so you can fill it in before retrying.
 
@@ -102,6 +103,46 @@ npm start              # Run compiled output (after build)
 ```
 
 During execution press `q` or `Ctrl+C` to exit gracefully.
+
+### Chat Patterns
+
+The `chatPatterns` section lets you customize how the relay recognizes chat, join, leave, and death messages from the Cubyz server. Each entry is keyed by event type (`chat`, `join`, `leave`, `death`) and contains a `pattern` string with **named capture groups**:
+
+| Event type | Required groups | Message group |
+| ---------- | ---------------- | ------------- |
+| `chat`     | `username`       | `message`     |
+| `join`     | `username`       | —             |
+| `leave`    | `username`       | —             |
+| `death`    | `username`       | `message`     |
+
+- **Named groups**: patterns must use `(?<username>...)` and, where applicable, `(?<message>...)` to extract fields.
+- **Per-type override**: supplying a pattern for an event type **fully replaces** the default for that type. If you omit a type, the built-in default is used.
+- **No regex flags**: patterns are compiled as-is. Use `[\s\S]` to match across newlines (as the default `chat` pattern does).
+- **Invalid regex**: if a pattern fails to compile, the application exits at startup with a configuration error.
+- **Missing `username` group**: if a pattern matches but has no `username` capture group, the match is skipped and the parser falls through to the next event type.
+
+Default patterns (also shown in `config.example.json`):
+
+```json
+{
+  "chatPatterns": {
+    "chat": {
+      "pattern": "^\\[(?<username>.+?)\\]\\s*(?<message>[\\s\\S]*)$"
+    },
+    "join": {
+      "pattern": "^(?<username>.+?) joined$"
+    },
+    "leave": {
+      "pattern": "^(?<username>.+?) left$"
+    },
+    "death": {
+      "pattern": "^(?<username>.+?) died(?<message>.*)$"
+    }
+  }
+}
+```
+
+> **Note**: regex strings in JSON require double-backslash escaping (e.g., `\\[` for a literal `[`, `\\s` for whitespace).
 
 ## Troubleshooting
 
