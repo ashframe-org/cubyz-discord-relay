@@ -6,6 +6,13 @@
     "botName": "Discord",
     "version": "0.0.0"
   },
+  "integration": {
+    "cubyzlistSite": {
+      "enabled": false,
+      "endpoint": "https://servers.ashframe.net",
+      "token": "PASTE_YOUR_RELAY_TOKEN_HERE"
+    }
+  },
   "discord": {
     "enabled": true,
     "token": "YOUR_DISCORD_BOT_TOKEN",
@@ -38,19 +45,5 @@
     "reconnect": true,
     "maxRetries": 0,
     "retryDelayMs": 30000
-  },
-  "integration": {
-    "cubyzlistSite": {
-      "enabled": false,
-      "endpoint": "https://servers.ashframe.net",
-      "token": "PASTE_SERVER_RELAY_TOKEN",
-      "serverName": "My Cubyz Server",
-      "serverIp": "play.yourserver.com",
-      "serverPort": 47649,
-      "description": "A friendly public survival server",
-      "iconUrl": "https://github.com/PixelGuys/Cubyz/blob/master/assets/cubyz/logo.png?raw=true",
-      "discordServer": "https://discord.gg/your-server",
-      "customClientDownloadUrl": "https://github.com/PixelGuys/Cubyz/releases/tag/0.0.0"
-    }
   }
 }
