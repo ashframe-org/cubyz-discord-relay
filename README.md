@@ -87,9 +87,26 @@ npm install
 
 This optional integration sends the relay's live online state and player count to the server record you own on [servers.ashframe.net](https://servers.ashframe.net). It does not read log files and does not affect Discord chat bridging.
 
-- `integration.cubyzlistSite.enabled`: enable live directory updates.
-- `integration.cubyzlistSite.endpoint`: the directory URL; normally `https://servers.ashframe.net`.
-- `integration.cubyzlistSite.token`: a server-scoped **Discord relay** token created in the directory account page. Keep it private.
+#### Setup
+
+1. Create a server listing at [servers.ashframe.net](https://servers.ashframe.net).
+2. Open **Account → API & Tokens → Create Token**. Select the listing and create a **Discord Relay** token.
+3. Copy the token immediately: it is shown only once. Do not share it or commit it to Git.
+4. Add this section to `config.json` and replace the placeholder with the token:
+
+```json
+"integration": {
+  "cubyzlistSite": {
+    "enabled": true,
+    "endpoint": "https://servers.ashframe.net",
+    "token": "PASTE_YOUR_RELAY_TOKEN_HERE"
+  }
+}
+```
+
+5. Run `npm run build`, then `npm start`. A successful connection sends the server's status, version, and current player count to the selected listing.
+
+The relay sends updates when it connects, when the game server status changes, when players change, and every five minutes while running. Discord chat bridging continues normally.
 
 Server name, address, description, icon, and links are managed in the directory itself. Existing configurations may keep the older fields; they are ignored by this integration.
 
