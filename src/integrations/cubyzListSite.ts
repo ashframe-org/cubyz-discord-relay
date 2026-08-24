@@ -1,31 +1,15 @@
-import net from "node:net";
 import type { Gamemode } from "cubyz-node-client";
 import type { BotConnectionManager } from "../botConnection.js";
 import { createLogger, type Logger } from "../logger.js";
-import type {
-  ChatMessage,
-  Config,
-  CubyzListSiteConfig,
-  LogLevel,
-} from "../types.js";
+import type { ChatMessage, Config, CubyzListSiteConfig, LogLevel } from "../types.js";
 import type { BaseIntegration, IntegrationStatusContext } from "./base.js";
 
-/**
- * Integration that sends server status updates to the Cubyz list site
- * via TCP socket connection to api.ashframe.net:5001.
- * Sends periodic updates every 5 minutes to keep the listing fresh.
- * @link https://servers.ashframe.net
- */
 export class CubyzListSiteIntegration implements BaseIntegration {
-  readonly name = "CubyzListSite";
-
-  private currentPlayers: Set<string> = new Set();
-  private currentStatus: "online" | "offline" = "offline";
-  private gamemode: string | null = null;
-  private lastUpdateTime = 0;
-  private periodicUpdateInterval: NodeJS.Timeout | null = null;
-  private readonly UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-  private isReady = false;
+  readonly name = "AshframeDirectory";
+  private players = new Set<string>();
+  private online = false;
+  private gamemode = "";
+  private timer: NodeJS.Timeout | null = null;
   private readonly config: CubyzListSiteConfig;
   private readonly version: string;
   private readonly logger: Logger;
@@ -43,23 +27,25 @@ export class CubyzListSiteIntegration implements BaseIntegration {
   setBotConnection(_bot: BotConnectionManager) {}
 
   async start(): Promise<void> {
-    this.log("info", "Integration started");
-    this.isReady = true;
+    if (!this.config.token) {
+      this.log("warn", "Directory integration is enabled but no relay token is configured.");
+      return;
+    }
     await this.sendUpdate();
-    this.startPeriodicUpdates();
+    this.timer = setInterval(() => void this.sendUpdate(), 5 * 60 * 1000);
+    this.timer.unref?.();
   }
 
   async stop(): Promise<void> {
-    this.log("info", "Integration stopped");
-    this.stopPeriodicUpdates();
-    this.currentStatus = "offline";
-    this.currentPlayers.clear();
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.online = false;
+    this.players.clear();
     await this.sendUpdate();
-    this.isReady = false;
   }
 
   async updatePlayers(players: readonly string[]): Promise<void> {
-    this.currentPlayers = new Set(players);
+    this.players = new Set(players);
     await this.sendUpdate();
   }
 
@@ -67,110 +53,41 @@ export class CubyzListSiteIntegration implements BaseIntegration {
     status: "online" | "offline",
     _context?: IntegrationStatusContext,
   ): Promise<void> {
-    this.currentStatus = status;
-    if (this.currentStatus === "offline") {
-      this.currentPlayers.clear();
-    }
+    this.online = status === "online";
+    if (!this.online) this.players.clear();
     await this.sendUpdate();
   }
 
   async updateGamemode(gamemode: Gamemode): Promise<void> {
-    switch (gamemode) {
-      case 0:
-        this.gamemode = "survival";
-        break;
-      case 1:
-        this.gamemode = "creative";
-        break;
-    }
+    this.gamemode =
+      gamemode === 0 ? "Survival" : gamemode === 1 ? "Creative" : "";
     await this.sendUpdate();
   }
 
-  async relayChatMessage(_chatMessage: ChatMessage) {}
-
-  async sendMessage(_message: string) {}
-
-  private startPeriodicUpdates(): void {
-    this.stopPeriodicUpdates();
-
-    this.periodicUpdateInterval = setInterval(() => {
-      const timeSinceLastUpdate = Date.now() - this.lastUpdateTime;
-      if (timeSinceLastUpdate >= this.UPDATE_INTERVAL_MS) {
-        this.log("debug", "Sending periodic update (5 minutes elapsed)");
-        this.sendUpdate().catch((error) => {
-          this.log("error", "Periodic update failed:", error);
-        });
-      }
-    }, 60000);
-
-    // Prevent the interval from keeping the process alive
-    this.periodicUpdateInterval.unref?.();
-  }
-
-  private stopPeriodicUpdates(): void {
-    if (this.periodicUpdateInterval) {
-      clearInterval(this.periodicUpdateInterval);
-      this.periodicUpdateInterval = null;
-    }
-  }
+  async relayChatMessage(_chatMessage: ChatMessage): Promise<void> {}
+  async sendMessage(_message: string): Promise<void> {}
 
   private async sendUpdate(): Promise<void> {
-    if (!this.isReady) {
-      return;
-    }
-
-    const payload = {
-      server_id: this.config.serverName,
-      player_count: this.currentPlayers.size,
-      player_list: Array.from(this.currentPlayers),
-      status: this.currentStatus,
-      ip: this.config.serverIp,
-      version: this.version,
-      api_version: "1",
-      timestamp: Math.floor(Date.now() / 1000),
-      ...(this.config.serverPort != null
-        ? { port: this.config.serverPort }
-        : {}),
-      ...(this.gamemode != null ? { gamemode: this.gamemode } : {}),
-      ...(this.config.description != null
-        ? { description: this.config.description }
-        : {}),
-      ...(this.config.iconUrl != null ? { icon: this.config.iconUrl } : {}),
-      ...(this.config.discordServer != null
-        ? { discord_server: this.config.discordServer }
-        : {}),
-      ...(this.config.customClientDownloadUrl != null
-        ? { client_download: this.config.customClientDownloadUrl }
-        : {}),
-    };
-
-    const dataString = JSON.stringify(payload);
-
-    return new Promise((resolve, reject) => {
-      const socket = net.createConnection(
-        { host: "api.ashframe.net", port: 5001 },
-        () => {
-          this.log("debug", "Sending update:", dataString);
-          socket.write(dataString, "utf-8");
-          socket.end();
+    if (!this.config.token) return;
+    const url = `${this.config.endpoint.replace(/\/$/, "")}/api/v1/relay/update`;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.token}`,
+          "Content-Type": "application/json",
         },
-      );
-
-      socket.on("error", (error) => {
-        this.log("error", "TCP connection error:", error.message);
-        reject(error);
+        body: JSON.stringify({
+          online: this.online,
+          playerCount: this.players.size,
+          version: this.version,
+          gamemode: this.gamemode,
+        }),
+        signal: AbortSignal.timeout(10_000),
       });
-
-      socket.on("close", () => {
-        this.lastUpdateTime = Date.now();
-        resolve();
-      });
-
-      // Timeout after 5 seconds
-      socket.setTimeout(5000, () => {
-        socket.destroy();
-        reject(new Error("[CubyzListSite] Connection timeout"));
-      });
-    });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      this.log("warn", "Directory update failed:", error);
+    }
   }
 }

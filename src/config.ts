@@ -43,6 +43,8 @@ const ALLOWED_LOG_LEVELS: readonly LogLevel[] = [
 ];
 const DEFAULT_CUBYZLIST_SITE: CubyzListSiteConfig = {
   enabled: false,
+  endpoint: "https://servers.ashframe.net",
+  token: "",
   serverName: "",
   serverIp: "",
   description: undefined,
@@ -193,6 +195,11 @@ function applyDefaults(partial: Partial<Config>): Config {
       typeof partial.integration?.cubyzlistSite?.enabled === "boolean"
         ? partial.integration.cubyzlistSite.enabled
         : DEFAULT_CUBYZLIST_SITE.enabled,
+    endpoint: coerceString(
+      partial.integration?.cubyzlistSite?.endpoint,
+      DEFAULT_CUBYZLIST_SITE.endpoint,
+    ),
+    token: coerceString(partial.integration?.cubyzlistSite?.token, ""),
     serverName: coerceString(
       partial.integration?.cubyzlistSite?.serverName,
       DEFAULT_CUBYZLIST_SITE.serverName,
@@ -314,11 +321,11 @@ function finalizeConfig(config: Config): Config {
   }
 
   const missingFields: string[] = [];
-  if (cubyzlist.serverName.length === 0) {
-    missingFields.push("integration.cubyzlistSite.serverName");
+  if (cubyzlist.endpoint.length === 0) {
+    missingFields.push("integration.cubyzlistSite.endpoint");
   }
-  if (cubyzlist.serverIp.length === 0) {
-    missingFields.push("integration.cubyzlistSite.serverIp");
+  if (cubyzlist.token.length === 0) {
+    missingFields.push("integration.cubyzlistSite.token");
   }
 
   if (missingFields.length === 0) {
@@ -542,15 +549,15 @@ export function validateConfig(config: Config): void {
     );
   }
 
-  if (typeof cubyzlist.serverName !== "string") {
+  if (typeof cubyzlist.endpoint !== "string") {
     throw new Error(
-      'Configuration error: "integration.cubyzlistSite.serverName" must be a string.',
+      'Configuration error: "integration.cubyzlistSite.endpoint" must be a string.',
     );
   }
 
-  if (typeof cubyzlist.serverIp !== "string") {
+  if (typeof cubyzlist.token !== "string") {
     throw new Error(
-      'Configuration error: "integration.cubyzlistSite.serverIp" must be a string.',
+      'Configuration error: "integration.cubyzlistSite.token" must be a string.',
     );
   }
 

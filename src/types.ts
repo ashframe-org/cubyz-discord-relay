@@ -25,6 +25,8 @@ export interface ConnectionRetryConfig {
 
 export interface CubyzListSiteConfig {
   enabled: boolean;
+  endpoint: string;
+  token: string;
   serverName: string;
   serverIp: string;
   description?: string;

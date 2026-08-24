@@ -42,6 +42,8 @@
   "integration": {
     "cubyzlistSite": {
       "enabled": false,
+      "endpoint": "https://servers.ashframe.net",
+      "token": "PASTE_SERVER_RELAY_TOKEN",
       "serverName": "My Cubyz Server",
       "serverIp": "play.yourserver.com",
       "serverPort": 47649,

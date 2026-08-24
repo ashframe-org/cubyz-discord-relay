@@ -85,14 +85,13 @@ npm install
 
 ### CubyzListSite Integration
 
-- `integration.cubyzlistSite.enabled`: toggle advertising to the community server list
-- `integration.cubyzlistSite.serverName`: required display name shown on servers.ashframe.net, must be unique; if missing while enabled, the integration logs a warning and stays disabled
-- `integration.cubyzlistSite.serverIp`: required public hostname or IP that players should connect to; if missing while enabled, the integration logs a warning and stays disabled
-- `integration.cubyzlistSite.description`: optional short description shown on servers.ashframe.net
-- `integration.cubyzlistSite.serverPort`: optional public port exposed for players
-- `integration.cubyzlistSite.iconUrl`: optional URL for the list thumbnail
-- `integration.cubyzlistSite.discordServer`: optional Discord invite or server URL
-- `integration.cubyzlistSite.customClientDownloadUrl`: optional link to a custom client build
+This optional integration sends the relay's live online state and player count to the server record you own on [servers.ashframe.net](https://servers.ashframe.net). It does not read log files and does not affect Discord chat bridging.
+
+- `integration.cubyzlistSite.enabled`: enable live directory updates.
+- `integration.cubyzlistSite.endpoint`: the directory URL; normally `https://servers.ashframe.net`.
+- `integration.cubyzlistSite.token`: a server-scoped **Discord relay** token created in the directory account page. Keep it private.
+
+Server name, address, description, icon, and links are managed in the directory itself. Existing configurations may keep the older fields; they are ignored by this integration.
 
 ### Usage
 
